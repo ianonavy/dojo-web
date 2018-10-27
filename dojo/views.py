@@ -8,7 +8,9 @@ def home(request):
 
 
 def session(request, session_id):
+    pilot = request.GET.get('pilot', False)
     return render(request, 'dojo/session.html', {
-        'session_id': mark_safe(json.dumps(session_id))
+        'session_id': mark_safe(json.dumps(session_id)),
+        'pilot': mark_safe(json.dumps(pilot)),
     })
 
