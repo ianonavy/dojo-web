@@ -229,6 +229,14 @@
     <script src="{% static "dojo/js/codemirror.js" %}"></script>
     <script src="{% static "dojo/js/python/python.js" %}"></script>
     <script>
+        var DojoState = {
+            code: {{ code }},
+            tests: {{ tests }},
+            output: {{ output }},
+            currentStep: {{ currentStep }},
+            currentlyPilot: {{ pilot }},
+        };
+
         var testMirror = CodeMirror(document.getElementById("tests"), {
             mode: {
                 name: "python",
@@ -239,7 +247,7 @@
             indentUnit: 4,
             matchBrackets: true,
             theme: "solarized dark",
-            value: "from dojo_code import echo\n\n\ndef test_echo_echoes():\n    assert \"hello\" == echo(\"hello\")"
+            value: DojoState.tests,
         });
         var codeMirror = CodeMirror(document.getElementById("code"), {
             mode: {
@@ -251,16 +259,8 @@
             indentUnit: 4,
             matchBrackets: true,
             theme: "solarized dark",
-            value: "def echo(message: str):\n    return message"
+            value: DojoState.code,
         });
-
-        var DojoState = {
-            code: {{ code }},
-            tests: {{ tests }},
-            output: {{ output }},
-            currentStep: {{ currentStep }},
-            currentlyPilot: {{ pilot }},
-        };
 
         var TestResult = {
             SUCCESS: 0,
@@ -312,6 +312,7 @@
 
         var Editor = {
             updateState: function(editor, message) {
+                // Only pilot can edit the state
                 if (!DojoState.currentlyPilot) {
                     if (editor === 'tests') {
                         DojoState.tests = message;
@@ -334,6 +335,13 @@
                     instance.setValue(state);
                 }
             }
+        }
+
+        function updateUI() {
+            TDDStepIndicator.updateUIComponents();
+            Output.updateUIComponents();
+            Editor.updateUIComponents('tests');
+            Editor.updateUIComponents('code');
         }
 
         function runTests() {
@@ -382,11 +390,7 @@
                 TDDStepIndicator.updateState(code);
             }
 
-            // Update UI components
-            TDDStepIndicator.updateUIComponents();
-            Output.updateUIComponents();
-            Editor.updateUIComponents('tests');
-            Editor.updateUIComponents('code');
+            updateUI();
         };
 
         chatSocket.onclose = function(e) {
@@ -410,6 +414,8 @@
         // Lock controls for passengers
         testMirror.setOption("readOnly", !DojoState.currentlyPilot);
         codeMirror.setOption("readOnly", !DojoState.currentlyPilot);
+
+        updateUI();
     </script>
 </body>
 

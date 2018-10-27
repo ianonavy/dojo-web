@@ -9,8 +9,13 @@ def home(request):
 
 
 def session(request, session_id):
-    code = ""
-    tests = ""
+    code = """def echo(message: str):
+    return message"""
+    tests = """from dojo_code import echo
+
+
+def test_echo_echoes():
+    assert "hello" != echo("hello")"""
     output = ""
     currentStep = "red"
     pilot = request.GET.get('pilot', "") == "true"
