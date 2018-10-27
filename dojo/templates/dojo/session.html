@@ -255,10 +255,10 @@
         });
 
         var DojoState = {
-            code: "",
-            tests: "",
-            output: "",
-            currentStep: "red",
+            code: {{ code }},
+            tests: {{ tests }},
+            output: {{ output }},
+            currentStep: {{ currentStep }},
             currentlyPilot: {{ pilot }},
         };
 
@@ -268,27 +268,70 @@
             ERROR: 2,
         };
 
-        function setTDDStep(testResult) {
-            var tddSteps = ['red', 'green', 'refactor'];
-            var nextStepTestResultRequirement = [
+        var TDDStepIndicator = {
+            STEPS: ['red', 'green', 'refactor'],
+            NEXT_STEP_TEST_RESULT: [
                 TestResult.FAILURE,  // but not error
                 TestResult.SUCCESS,
                 TestResult.SUCCESS,
-            ];
-            for (var i = 0, len = tddSteps.length; i < len; i++) {
-                var tddStep = tddSteps[i];
-                var correctResult = nextStepTestResultRequirement[i];
-                if (tddStep == DojoState.currentStep && testResult == correctResult) {
-                    DojoState.currentStep = tddSteps[(i + 1) % len]
-                    break;
+            ],
+            updateState: function(testResult) {
+                for (var i = 0, len = this.STEPS.length; i < len; i++) {
+                    var tddStep = this.STEPS[i];
+                    var correctResult = this.NEXT_STEP_TEST_RESULT[i];
+                    if (tddStep == DojoState.currentStep && testResult == correctResult) {
+                        DojoState.currentStep = tddSteps[(i + 1) % len]
+                        break;
+                    }
+                }
+            },
+            updateUIComponents: function() {
+                for (var i = 0, len = this.STEPS.length; i < len; i++) {
+                    var tddStep = this.STEPS[i];
+                    var div = document.querySelector('.tdd-' + tddStep);
+                    div.className = "tdd-step tdd-" + tddStep
+                    if (tddStep == DojoState.currentStep) {
+                        div.className += " tdd-active"
+                    }
                 }
             }
-            for (var i = 0, len = tddSteps.length; i < len; i++) {
-                var tddStep = tddSteps[i];
-                var div = document.querySelector('.tdd-' + tddStep);
-                div.className = "tdd-step tdd-" + tddStep
-                if (tddStep == DojoState.currentStep) {
-                    div.className += " tdd-active"
+        }
+
+        var Output = {
+            clearState: function() {
+                DojoState.output = "";
+            },
+            updateState: function(additionalOutput) {
+                DojoState.output += additionalOutput;
+            },
+            updateUIComponents: function() {
+                var pre = document.querySelector('.output pre');
+                pre.textContent = DojoState.output;
+            }
+        }
+
+        var Editor = {
+            updateState: function(editor, message) {
+                if (!DojoState.currentlyPilot) {
+                    if (editor === 'tests') {
+                        DojoState.tests = message;
+                    } else if (editor === 'code') {
+                        DojoState.code = message;
+                    }
+                }
+
+            },
+            updateUIComponents: function(editor) {
+                if (!DojoState.currentlyPilot) {
+                    var instance, state;
+                    if (editor === 'tests') {
+                        instance = testMirror;
+                        state = DojoState.tests;
+                    } else if (editor === 'code') {
+                        instance = codeMirror;
+                        state = DojoState.code;
+                    }
+                    instance.setValue(state);
                 }
             }
         }
@@ -325,26 +368,25 @@
             var type = data['type'];
 
             if (type === 'code_change') {
+                console.log(data);
                 var editor = data['editor'];
-                if (!DojoState.currentlyPilot) {
-                    var message = data['message'];
-                    var instance;
-                    if (editor === 'tests') {
-                        instance = testMirror;
-                    } else if (editor === 'code') {
-                        instance = codeMirror;
-                    }
-                    instance.setValue(message);
-                }
+                var message = data['message'];
+                Editor.updateState(editor, message);
             } else if (type === 'new-output') {
-                document.querySelector('.output pre').textContent = "";
+                Output.clearState();
             } else if (type === 'output') {
                 var content = data['content'];
-                document.querySelector('.output pre').textContent += content;
+                Output.updateState(content);
             } else if (type === 'test-error-code') {
                 var code = data['code'];
-                setTDDStep(code);
+                TDDStepIndicator.updateState(code);
             }
+
+            // Update UI components
+            TDDStepIndicator.updateUIComponents();
+            Output.updateUIComponents();
+            Editor.updateUIComponents('tests');
+            Editor.updateUIComponents('code');
         };
 
         chatSocket.onclose = function(e) {

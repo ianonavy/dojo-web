@@ -9,8 +9,16 @@ def home(request):
 
 
 def session(request, session_id):
-    pilot = request.GET.get('pilot', False)
+    code = ""
+    tests = ""
+    output = ""
+    currentStep = "red"
+    pilot = request.GET.get('pilot', "") == "true"
     return render(request, 'dojo/session.html', {
         'session_id': mark_safe(json.dumps(session_id)),
+        'code': mark_safe(json.dumps(code)),
+        'tests': mark_safe(json.dumps(tests)),
+        'output': mark_safe(json.dumps(output)),
+        'currentStep': mark_safe(json.dumps(currentStep)),
         'pilot': mark_safe(json.dumps(pilot)),
     })
