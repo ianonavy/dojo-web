@@ -57,7 +57,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 test_file.write(event['code'])
 
             create = asyncio.create_subprocess_exec(
-                'pytest',
+                'pytest', '-v',
                 stdout=asyncio.subprocess.PIPE,
             )
             proc = await create
