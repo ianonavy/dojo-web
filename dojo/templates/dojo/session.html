@@ -264,6 +264,8 @@ test_code.py .                                                                  
         });
 
         var sessionId = {{ session_id }};
+        // TODO: initialize this from server-side session state
+        var numEdits = 0;
 
         var chatSocket = new WebSocket(
             'ws://' + window.location.host +
@@ -271,18 +273,29 @@ test_code.py .                                                                  
 
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
+            var eventNumEdits = data['numEdits'];
+
+            // Don't update for own edits, and prefer my own copy if
+            // I get a conflicting version
+            if (numEdits > eventNumEdits) {
+                // Catcn up with everyone else on the semaphore
+                numEdits = eventNumEdits;
+                return;
+            }
+
             var editor = data['editor'];
             var message = data['message'];
 
+            var instance;
             if (editor === 'tests') {
-                var currentValue = testMirror.getValue();
-                if (currentValue != message) {
-                    testMirror.setValue(message);
-                }
+                instance = testMirror;
             } else if (editor === 'code') {
-                var currentValue = codeMirror.getValue();
+                instance = codeMirror;
+            }
+            if (instance !== undefined) {
+                var currentValue = instance.getValue();
                 if (currentValue != message) {
-                    codeMirror.setValue(message);
+                    instance.setValue(message);
                 }
             }
         };
@@ -293,16 +306,20 @@ test_code.py .                                                                  
 
         testMirror.on('changes', function(instance, change) {
             var message = instance.getValue();
+            numEdits = (numEdits + 1) % (2 ** 32);
             chatSocket.send(JSON.stringify({
                 'editor': 'tests',
-                'message': message
+                'message': message,
+                'numEdits': numEdits,
             }));
         });
         codeMirror.on('changes', function(instance, change) {
             var message = instance.getValue();
+            numEdits = (numEdits + 1) % (2 ** 32);
             chatSocket.send(JSON.stringify({
                 'editor': 'code',
-                'message': message
+                'message': message,
+                'numEdits': numEdits,
             }));
         });
     </script>
