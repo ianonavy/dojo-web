@@ -192,7 +192,7 @@
             </div>
             <div style="flex:1"></div>
             <div class="tdd-steps">
-                <div class="tdd-step tdd-red">RED</div><div class="tdd-step tdd-green tdd-active">GREEN</div><div class="tdd-step tdd-refactor">REFACTOR</div>
+                <div class="tdd-step tdd-red tdd-active">RED</div><div class="tdd-step tdd-green">GREEN</div><div class="tdd-step tdd-refactor">REFACTOR</div>
             </div>
             <div class="users">
                 <div class="button slim">End Turn:</div><div class="user">👨‍✈️ Ian</div><div class="user">☸️ Roseanne</div><div class="user">⬅️ Angela</div>
@@ -256,8 +256,33 @@
 
         var sessionId = {{ session_id }};
         var pilot = {{ pilot }};
+        var lastTestRunPassed = false;
+        var currentTddStep = 'red';
         testMirror.setOption("readOnly", !pilot);
         codeMirror.setOption("readOnly", !pilot);
+
+        function setTDDStep(testResult) {
+            var tddSteps = ['red', 'green', 'refactor'];
+            var nextStepTestResultRequirement = [false, true, true];
+            for (var i = 0, len = tddSteps.length; i < len; i++) {
+                var tddStep = tddSteps[i];
+                var correctResult = nextStepTestResultRequirement[i];
+                if (tddStep == currentTddStep && testResult == correctResult) {
+                    console.log(currentTddStep);
+                    currentTddStep = tddSteps[(i + 1) % len]
+                    console.log(currentTddStep);
+                    break;
+                }
+            }
+            for (var i = 0, len = tddSteps.length; i < len; i++) {
+                var tddStep = tddSteps[i];
+                var div = document.querySelector('.tdd-' + tddStep);
+                div.className = "tdd-step tdd-" + tddStep
+                if (tddStep == currentTddStep) {
+                    div.className += " tdd-active"
+                }
+            }
+        }
 
         var chatSocket = new WebSocket(
             'ws://' + window.location.host +
@@ -265,9 +290,7 @@
 
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
-
             var type = data['type'];
-            console.log(type);
 
             if (type === 'code_change') {
                 var editor = data['editor'];
@@ -286,8 +309,10 @@
                 document.querySelector('.output pre').textContent = "";
             } else if (type === 'output') {
                 var content = data['content'];
-                console.log(content);
                 document.querySelector('.output pre').textContent += content;
+            } else if (type === 'test-result') {
+                var success = data['success'];
+                setTDDStep(success);
             }
         };
 

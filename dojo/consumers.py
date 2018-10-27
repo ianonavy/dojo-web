@@ -78,3 +78,9 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 await self.send(text_data=json.dumps(output))
 
             await proc.wait()
+
+            output = {
+                "type": "test-result",
+                "success": proc.returncode == 0,
+            }
+            await self.send(text_data=json.dumps(output))
