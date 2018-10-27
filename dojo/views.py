@@ -7,12 +7,8 @@ def home(request):
     return render(request, 'dojo/index.html')
 
 
-def chat(request):
-    return render(request, 'dojo/chat.html')
-
-
-def room(request, room_name):
-    return render(request, 'dojo/room.html', {
-        'room_name_json': mark_safe(json.dumps(room_name))
+def session(request, session_id):
+    return render(request, 'dojo/session.html', {
+        'session_id': mark_safe(json.dumps(session_id))
     })
 

@@ -1,0 +1,268 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="{% static "dojo/css/codemirror.css" %}">
+    <link rel="stylesheet" href="{% static "dojo/css/solarized.css" %}">
+
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #fdf6e3;
+            margin: 0;
+            padding: 0;
+            font-family: Avenir;
+        }
+        .main {
+            height: 100vh;
+            display: flex;
+            flex-flow: column;
+        }
+        .main .section {
+            display: flex;
+            align-content: flex-start;
+        }
+        .main .section.fixed {
+            flex: 0 1 auto;
+        }
+        .main .section.fill {
+            flex: 1 1 auto;
+        }
+
+        .info-bar, .output {
+            font-size: 20px;
+            font-family: Roboto, sans-serif;
+        }
+        .info-bar > div {
+            margin: 4px 7px 0;
+        }
+
+        .nav div {
+            background: #fdf6e3;
+            cursor: pointer;
+            display: inline-block;
+            padding: 2px 15px 2px;
+            font-size: 20px;
+        }
+        .nav div:hover:not(.active) {
+            filter: brightness(75%);
+        }
+        .nav .active {
+            background: #002b36; /* Solarized Dark */
+            color: #fff;
+            margin: 0;
+        }
+        .users, .timing-controls {
+            display: flex;
+            align-items: center;
+        }
+        .info-bar .button {
+            margin: 0 2px;
+        }
+        .timing-controls .timer {
+            margin-right: 4px;
+        }
+        .tdd-steps {
+            display: inline;
+        }
+        .tdd-step {
+            cursor: pointer;
+            display: inline-block;
+            width: 128px;
+            font-weight: lighter;
+            color: white;
+            text-align: center;
+            filter: saturate(12%);
+        }
+        .tdd-step.tdd-active {
+            filter: saturate(100%);
+            font-weight: bold;
+        }
+        .tdd-step:hover {
+            filter: saturate(100%);
+        }
+        .tdd-red {
+            background: #dc322f;
+        }
+        .tdd-green {
+            background: #859900;
+        }
+        .tdd-refactor {
+            background: #268bd2;
+        }
+
+        .users {
+            margin: 0;
+            padding: 0 30px;
+        }
+        .users .user {
+            display: inline;
+            margin: 0 4px;
+            font-size: 15px;
+        }
+
+        .panel {
+            background: #002b36; /* Solarized Dark */
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            flex: 1;
+        }
+        .panel p {
+            font-family: Avenir;
+            margin: 0;
+            padding: 0;
+        }
+        .CodeMirror {
+            max-width: 50vw;
+            height: 456px;  /* 24 lines */
+        }
+        .cm-s-solarized.CodeMirror {
+            box-shadow: none;
+            border-top: 1px solid #073642;
+            border-bottom: 4px solid #073642;
+        }
+        .button {
+            align-self: center;
+            background-color: #586e75; /* Solarized Dark Base01 */
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: inline-block;
+            font-size: 10px;
+            margin: 2px 15px 2px 15px ;
+            padding: 2px 15px;
+            text-align: center;
+            text-decoration: none;
+        }
+        .button.slim {
+            padding: 2px 7px;
+        }
+        .button.primary {
+            background-color: #cb4b16;
+        }
+        .button:hover {
+            filter: brightness(125%);
+        }
+        .output {
+            background: #002b36; /* Solarized Dark */
+            height: 100%;
+            padding: 8px 36px;
+        }
+        .output pre {
+            display: block;
+            font-size: 12.5px;
+        }
+        h2 {
+            margin: 0;
+            display: inline-block;
+            font-weight: normal;
+            font-size: 20px;
+            line-height: 1em;
+        }
+        .header {
+            display: flex;
+            padding: 4px 36px;
+            align-content: flex-end;
+            align-items: flex-end;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main">
+        <div class="section fixed info-bar">
+            <div class="nav">
+                <div>Kata</div><div>Design</div><div class="active">Code</div><div>Retro</div>
+            </div>
+            <div style="flex:1"></div>
+            <div class="tdd-steps">
+                <div class="tdd-step tdd-red">RED</div><div class="tdd-step tdd-green tdd-active">GREEN</div><div class="tdd-step tdd-refactor">REFACTOR</div>
+            </div>
+            <div class="users">
+                <div class="button slim">End Turn:</div><div class="user">👨‍✈️ Ian</div><div class="user">☸️ Roseanne</div><div class="user">⬅️ Angela</div>
+            </div>
+            <div style="flex:1"></div>
+            <div class="timing-controls">
+                <div class="timer">7:00</div><div class="button slim">Reset</div>
+            </div>
+        </div>
+        <div class="section fixed">
+            <div class="panel">
+                <div class="header">
+                    <h2>Tests</h2>
+                    <div class="button primary">Run</div>
+                </div>
+                <div id="tests" class="editor"></div>
+            </div>
+            <div class="panel">
+                <div class="header">
+                    <h2>Code</h2>
+                    <div class="button">Format</div>
+                </div>
+                <div id="code" class="editor"></div>
+            </div>
+        </div>
+        <div class="section fill">
+            <div class="panel output">
+                <h2>Output</h2>
+                <pre>========================================================================== test session starts ===========================================================================
+platform linux -- Python 3.7.0, pytest-3.8.2, py-1.6.0, pluggy-0.7.1
+rootdir: /opt/code, inifile:
+plugins: mock-1.10.0
+collected 1 item
+
+test_code.py .                                                                                                                                                  [100%]
+
+======================================================================== 1 passed in 0.08 seconds ========================================================================
+</pre>
+           </div>
+        </div>
+    </div>
+
+    <script src="{% static "dojo/js/codemirror.js" %}"></script>
+    <script src="{% static "dojo/js/python/python.js" %}"></script>
+    <script>
+        var testMirror = CodeMirror(document.getElementById("tests"), {
+            mode: {
+                name: "python",
+                version: 3,
+                singleLineStringErrors: false
+            },
+            lineNumbers: true,
+            indentUnit: 4,
+            matchBrackets: true,
+            theme: "solarized dark",
+            value: "from code import echo\n\n\ndef test_echo_echoes():\n    assert \"hello\" == echo(\"hello\")"
+        });
+        var codeMirror = CodeMirror(document.getElementById("code"), {
+            mode: {
+                name: "python",
+                version: 3,
+                singleLineStringErrors: false
+            },
+            lineNumbers: true,
+            indentUnit: 4,
+            matchBrackets: true,
+            theme: "solarized dark",
+            value: "def echo(message: str):\n    return message"
+        });
+    </script>
+</body>
+
+</html>
