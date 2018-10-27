@@ -254,17 +254,19 @@
             value: "def echo(message: str):\n    return message"
         });
 
+        var DojoState = {
+            code: "",
+            tests: "",
+            output: "",
+            currentStep: "red",
+            currentlyPilot: {{ pilot }},
+        };
+
         var TestResult = {
             SUCCESS: 0,
             FAILURE: 1,
             ERROR: 2,
-        }
-        var sessionId = {{ session_id }};
-        var pilot = {{ pilot }};
-        var lastTestRunPassed = false;
-        var currentTddStep = 'red';
-        testMirror.setOption("readOnly", !pilot);
-        codeMirror.setOption("readOnly", !pilot);
+        };
 
         function setTDDStep(testResult) {
             var tddSteps = ['red', 'green', 'refactor'];
@@ -276,8 +278,8 @@
             for (var i = 0, len = tddSteps.length; i < len; i++) {
                 var tddStep = tddSteps[i];
                 var correctResult = nextStepTestResultRequirement[i];
-                if (tddStep == currentTddStep && testResult == correctResult) {
-                    currentTddStep = tddSteps[(i + 1) % len]
+                if (tddStep == DojoState.currentStep && testResult == correctResult) {
+                    DojoState.currentStep = tddSteps[(i + 1) % len]
                     break;
                 }
             }
@@ -285,7 +287,7 @@
                 var tddStep = tddSteps[i];
                 var div = document.querySelector('.tdd-' + tddStep);
                 div.className = "tdd-step tdd-" + tddStep
-                if (tddStep == currentTddStep) {
+                if (tddStep == DojoState.currentStep) {
                     div.className += " tdd-active"
                 }
             }
@@ -299,17 +301,32 @@
             }));
         }
 
+        function sendCodeChange(editor) {
+            return function(instance, change) {
+                var message = instance.getValue();
+                if (DojoState.currentlyPilot) {
+                    chatSocket.send(JSON.stringify({
+                        'type': 'code_change',
+                        'editor': editor,
+                        'message': message,
+                    }));
+                }
+            }
+        }
+
+        var sessionId = {{ session_id }};
         var chatSocket = new WebSocket(
             'ws://' + window.location.host +
             '/ws/session/' + sessionId + '/');
 
+        // Handle incoming message types
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
             var type = data['type'];
 
             if (type === 'code_change') {
                 var editor = data['editor'];
-                if (!pilot) {
+                if (!DojoState.currentlyPilot) {
                     var message = data['message'];
                     var instance;
                     if (editor === 'tests') {
@@ -334,40 +351,23 @@
             console.error('Chat socket closed unexpectedly');
         };
 
-        testMirror.on('changes', function(instance, change) {
-            var message = instance.getValue();
-            if (pilot) {
-                chatSocket.send(JSON.stringify({
-                    'type': 'code_change',
-                    'editor': 'tests',
-                    'message': message,
-                }));
-            }
-        });
-        codeMirror.on('changes', function(instance, change) {
-            if (pilot) {
-                chatSocket.send(JSON.stringify({
-                    'type': 'code_change',
-                    'editor': 'tests',
-                    'message': message,
-                }));
-            }
-        });
+        // Send outbound messages for state changes
+        testMirror.on('changes', sendCodeChange('tests'));
+        codeMirror.on('changes', sendCodeChange('code'));
 
-        document.querySelector('#btn-run').addEventListener('click', function () {
-            runTests();
-        }, false);
+        var runButton = document.querySelector('#btn-run');
+        runButton.addEventListener('click', runTests, false);
 
         testMirror.setOption("extraKeys", {
-            "Cmd-Enter": function(cm) {
-                runTests();
-            }
+            "Cmd-Enter": function(cm) { runTests(); }
         });
         codeMirror.setOption("extraKeys", {
-            "Cmd-Enter": function(cm) {
-                runTests();
-            }
+            "Cmd-Enter": function(cm) { runTests(); }
         });
+
+        // Lock controls for passengers
+        testMirror.setOption("readOnly", !DojoState.currentlyPilot);
+        codeMirror.setOption("readOnly", !DojoState.currentlyPilot);
     </script>
 </body>
 
