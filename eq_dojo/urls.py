@@ -19,5 +19,7 @@ from dojo import views
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('chat/', views.chat, name='chat'),
+    path('chat/<room_name>/', views.room, name='room'),
     path('admin/', admin.site.urls),
 ]
