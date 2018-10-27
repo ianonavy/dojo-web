@@ -280,7 +280,7 @@
                     var tddStep = this.STEPS[i];
                     var correctResult = this.NEXT_STEP_TEST_RESULT[i];
                     if (tddStep == DojoState.currentStep && testResult == correctResult) {
-                        DojoState.currentStep = tddSteps[(i + 1) % len]
+                        DojoState.currentStep = this.STEPS[(i + 1) % len]
                         break;
                     }
                 }
