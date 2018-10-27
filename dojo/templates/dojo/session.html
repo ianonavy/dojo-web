@@ -254,6 +254,11 @@
             value: "def echo(message: str):\n    return message"
         });
 
+        var TestResult = {
+            SUCCESS: 0,
+            FAILURE: 1,
+            ERROR: 2,
+        }
         var sessionId = {{ session_id }};
         var pilot = {{ pilot }};
         var lastTestRunPassed = false;
@@ -263,14 +268,16 @@
 
         function setTDDStep(testResult) {
             var tddSteps = ['red', 'green', 'refactor'];
-            var nextStepTestResultRequirement = [false, true, true];
+            var nextStepTestResultRequirement = [
+                TestResult.FAILURE,  // but not error
+                TestResult.SUCCESS,
+                TestResult.SUCCESS,
+            ];
             for (var i = 0, len = tddSteps.length; i < len; i++) {
                 var tddStep = tddSteps[i];
                 var correctResult = nextStepTestResultRequirement[i];
                 if (tddStep == currentTddStep && testResult == correctResult) {
-                    console.log(currentTddStep);
                     currentTddStep = tddSteps[(i + 1) % len]
-                    console.log(currentTddStep);
                     break;
                 }
             }
@@ -302,7 +309,6 @@
                     } else if (editor === 'code') {
                         instance = codeMirror;
                     }
-                    console.log("setting");
                     instance.setValue(message);
                 }
             } else if (type === 'new-output') {
@@ -310,9 +316,9 @@
             } else if (type === 'output') {
                 var content = data['content'];
                 document.querySelector('.output pre').textContent += content;
-            } else if (type === 'test-result') {
-                var success = data['success'];
-                setTDDStep(success);
+            } else if (type === 'test-error-code') {
+                var code = data['code'];
+                setTDDStep(code);
             }
         };
 
