@@ -1,5 +1,11 @@
-from channels.generic.websocket import AsyncWebsocketConsumer
+import asyncio
+import asyncio.subprocess
 import json
+import os
+import tempfile
+
+from channels.generic.websocket import AsyncWebsocketConsumer
+
 
 class SessionConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -24,7 +30,6 @@ class SessionConsumer(AsyncWebsocketConsumer):
     # Receive message from WebSocket
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
-        text_data_json['type'] = 'chat_message'
 
         # Send message to room group
         await self.channel_layer.group_send(
@@ -33,6 +38,43 @@ class SessionConsumer(AsyncWebsocketConsumer):
         )
 
     # Receive message from room group
-    async def chat_message(self, event):
+    async def code_change(self, event):
         # Send message to WebSocket
         await self.send(text_data=json.dumps(event))
+
+    async def run(self, event):
+        if not asyncio.get_event_loop():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        asyncio.get_event_loop().create_task(self.do_command(event))
+
+    async def do_command(self, event):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            os.chdir(tmpdirname)
+            with open('test_code.py', 'w+') as test_file:
+                test_file.write(event['tests'])
+            with open('dojo_code.py', 'w+') as test_file:
+                test_file.write(event['code'])
+
+            create = asyncio.create_subprocess_exec(
+                'pytest',
+                stdout=asyncio.subprocess.PIPE,
+            )
+            proc = await create
+
+            output = {
+                "type": "new-output",
+            }
+            await self.send(text_data=json.dumps(output))
+
+            while True:
+                line = await proc.stdout.read(1)
+                if not line:
+                    break
+                output = {
+                    "type": "output",
+                    "content": line.decode('utf-8'),
+                }
+                await self.send(text_data=json.dumps(output))
+
+            await proc.wait()

@@ -7,6 +7,7 @@ name = "pypi"
 django = "==2.1"
 channels = "*"
 channels-redis = "*"
+pytest = "*"
 
 [dev-packages]
 

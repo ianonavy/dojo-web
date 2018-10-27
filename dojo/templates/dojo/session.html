@@ -206,14 +206,14 @@
             <div class="panel">
                 <div class="header">
                     <h2>Tests</h2>
-                    <div class="button primary">Run</div>
+                    <div id="btn-run" class="button primary">Run</div>
                 </div>
                 <div id="tests" class="editor"></div>
             </div>
             <div class="panel">
                 <div class="header">
                     <h2>Code</h2>
-                    <div class="button">Format</div>
+                    <div id="btn-format" class="button">Format</div>
                 </div>
                 <div id="code" class="editor"></div>
             </div>
@@ -221,16 +221,7 @@
         <div class="section fill">
             <div class="panel output">
                 <h2>Output</h2>
-                <pre>========================================================================== test session starts ===========================================================================
-platform linux -- Python 3.7.0, pytest-3.8.2, py-1.6.0, pluggy-0.7.1
-rootdir: /opt/code, inifile:
-plugins: mock-1.10.0
-collected 1 item
-
-test_code.py .                                                                                                                                                  [100%]
-
-======================================================================== 1 passed in 0.08 seconds ========================================================================
-</pre>
+                <pre></pre>
            </div>
         </div>
     </div>
@@ -248,7 +239,7 @@ test_code.py .                                                                  
             indentUnit: 4,
             matchBrackets: true,
             theme: "solarized dark",
-            value: "from code import echo\n\n\ndef test_echo_echoes():\n    assert \"hello\" == echo(\"hello\")"
+            value: "from dojo_code import echo\n\n\ndef test_echo_echoes():\n    assert \"hello\" == echo(\"hello\")"
         });
         var codeMirror = CodeMirror(document.getElementById("code"), {
             mode: {
@@ -275,17 +266,28 @@ test_code.py .                                                                  
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
 
-            var editor = data['editor'];
-            if (!pilot) {
-                var message = data['message'];
-                var instance;
-                if (editor === 'tests') {
-                    instance = testMirror;
-                } else if (editor === 'code') {
-                    instance = codeMirror;
+            var type = data['type'];
+            console.log(type);
+
+            if (type === 'code_change') {
+                var editor = data['editor'];
+                if (!pilot) {
+                    var message = data['message'];
+                    var instance;
+                    if (editor === 'tests') {
+                        instance = testMirror;
+                    } else if (editor === 'code') {
+                        instance = codeMirror;
+                    }
+                    console.log("setting");
+                    instance.setValue(message);
                 }
-                console.log("setting");
-                instance.setValue(message);
+            } else if (type === 'new-output') {
+                document.querySelector('.output pre').textContent = "";
+            } else if (type === 'output') {
+                var content = data['content'];
+                console.log(content);
+                document.querySelector('.output pre').textContent += content;
             }
         };
 
@@ -297,6 +299,7 @@ test_code.py .                                                                  
             var message = instance.getValue();
             if (pilot) {
                 chatSocket.send(JSON.stringify({
+                    'type': 'code_change',
                     'editor': 'tests',
                     'message': message,
                 }));
@@ -305,11 +308,20 @@ test_code.py .                                                                  
         codeMirror.on('changes', function(instance, change) {
             if (pilot) {
                 chatSocket.send(JSON.stringify({
+                    'type': 'code_change',
                     'editor': 'tests',
                     'message': message,
                 }));
             }
         });
+
+        document.querySelector('#btn-run').addEventListener('click', function () {
+            chatSocket.send(JSON.stringify({
+                'type': 'run',
+                'tests': testMirror.getValue(),
+                'code': codeMirror.getValue(),
+            }));
+        }, false);
     </script>
 </body>
 

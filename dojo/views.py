@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
 import json
@@ -13,4 +14,3 @@ def session(request, session_id):
         'session_id': mark_safe(json.dumps(session_id)),
         'pilot': mark_safe(json.dumps(pilot)),
     })
-

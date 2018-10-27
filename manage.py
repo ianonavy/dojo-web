@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 import os
 import sys
+import asyncio
 
 if __name__ == '__main__':
+    # Add so we can use subprocess in consumers
+    asyncio.get_child_watcher()
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'eq_dojo.settings')
     try:
         from django.core.management import execute_from_command_line
