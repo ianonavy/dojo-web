@@ -291,6 +291,14 @@
             }
         }
 
+        function runTests() {
+            chatSocket.send(JSON.stringify({
+                'type': 'run',
+                'tests': testMirror.getValue(),
+                'code': codeMirror.getValue(),
+            }));
+        }
+
         var chatSocket = new WebSocket(
             'ws://' + window.location.host +
             '/ws/session/' + sessionId + '/');
@@ -347,12 +355,19 @@
         });
 
         document.querySelector('#btn-run').addEventListener('click', function () {
-            chatSocket.send(JSON.stringify({
-                'type': 'run',
-                'tests': testMirror.getValue(),
-                'code': codeMirror.getValue(),
-            }));
+            runTests();
         }, false);
+
+        testMirror.setOption("extraKeys", {
+            "Cmd-Enter": function(cm) {
+                runTests();
+            }
+        });
+        codeMirror.setOption("extraKeys", {
+            "Cmd-Enter": function(cm) {
+                runTests();
+            }
+        });
     </script>
 </body>
 
